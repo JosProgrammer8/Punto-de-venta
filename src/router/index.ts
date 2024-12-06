@@ -1,18 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/Home.vue';
-import ProductList from '../views/ProductList.vue';
-import ProductDetail from '../views/ProductDetail.vue';
-import PurchaseHistory from '../views/PurchaseHistory.vue';
-import Login from '../views/Login.vue';
-import AdminPanel from '../views/AdminPanel.vue';
+import HomeView from '@/views/HomeView.vue';
+import ProductView from '@/views/ProductView.vue';
+import SalesHistoryView from '@/views/SalesHistoryView.vue';
+import UserLogin from '@/views/UserLogin.vue';
+import UserRegister from '@/views/UserRegister.vue';
+import AdminDashboard from '@/views/AdminDashboard.vue';
+import UnauthorizedView from '@/views/UnauthorizedView.vue';
+import { useUserStore } from '../stores/userStore';
 
 const routes = [
-  { path: '/', component: Home },
-  { path: '/products', component: ProductList },
-  { path: '/products/:id', component: ProductDetail, props: true },
-  { path: '/history', component: PurchaseHistory },
-  { path: '/login', component: Login },
-  { path: '/admin', component: AdminPanel }
+  { path: '/', name: 'Home', component: HomeView },
+  { path: '/products', name: 'Products', component: ProductView },
+  { path: '/sales-history', name: 'SalesHistory', component: SalesHistoryView },
+  { path: '/login', name: 'Login', component: UserLogin },
+  { path: '/register', name: 'Register', component: UserRegister },
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/unauthorized',
+    name: 'Unauthorized',
+    component: UnauthorizedView,
+  },
 ];
 
 const router = createRouter({
@@ -20,6 +32,29 @@ const router = createRouter({
   routes,
 });
 
-export default router;
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore();
+  const publicPages = ['/login', '/register'];
+  const authRequired = to.meta.requiresAuth;
+  const adminRequired = to.meta.requiresAdmin;
+  const currentUser = userStore.currentUser;
 
+  if (authRequired && !currentUser) {
+    return next('/login');
+  }
+
+  if (adminRequired) {
+    const isAdmin =
+      currentUser &&
+      currentUser.email === 'admin@admin.com' &&
+      currentUser.password === 'enrique88';
+    if (!isAdmin) {
+      return next('/unauthorized');
+    }
+  }
+
+  next();
+});
+
+export default router;
 

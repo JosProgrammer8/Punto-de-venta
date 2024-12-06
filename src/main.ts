@@ -1,15 +1,24 @@
-import './assets/main.css'
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { createApp } from 'vue';
+import App from './App.vue';
+import router from './router';
+import { createPinia } from 'pinia';
+import { useUserStore } from './stores/userStore';
+import './assets/main.css';
 
-import App from './App.vue'
-import router from './router'
+const app = createApp(App);
 
-const app = createApp(App)
+const pinia = createPinia();
+app.use(pinia);
 
-app.use(createPinia())
-app.use(router)
+router.beforeEach((to, from, next) => {
+  const userStore = useUserStore();
+  if (to.meta.requiresAuth && !userStore.currentUser) {
+    next({ path: '/login', query: { redirect: to.fullPath } });
+  } else {
+    next(); 
+  }
+});
 
-app.mount('#app')
-
+app.use(router);
+app.mount('#app');
 
