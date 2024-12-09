@@ -1,86 +1,101 @@
-const express = require("express");
-const { Sequelize, DataTypes } = require("sequelize");
-const cors = require("cors");
-const http = require("http");
-const { Server } = require("socket.io");
+const { Sequelize, DataTypes } = require('sequelize')
+const constants = require('./app/utils/constants')
+const config = require('./config/config.json')
+const express = require('express')
+const cors = require('cors')
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
-});
+const app = express()
 
-app.use(express.json());
-app.use(cors());
+app.use(express.json())
+app.use(cors())
 
-const sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: "database.sqlite"
-});
+let entorno = constants.ENV.prod
 
-const Product = require('./models/product')(sequelize, DataTypes);
+const args = process.argv
 
-sequelize.sync();
+if (args.length <= 2) {
+    throw new Error(`Parametro '--entorno' requerido`)
+}
 
-app.get("/products", async (req, res) => {
-  try {
-    const products = await Product.findAll();
-    res.json(products);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    res.status(500).send("Error fetching products");
-  }
-});
+args.forEach((argument) => {
+    const arg = argument.toLowerCase()
 
-app.post("/products", async (req, res) => {
-  try {
-    const { name, price, stock, imageUrl } = req.body;
-    const product = await Product.create({ name, price, stock, imageUrl });
-    io.emit("productsUpdated", await Product.findAll());
-    res.json(product);
-  } catch (error) {
-    console.error("Error creating product:", error);
-    res.status(500).send("Error creating product");
-  }
-});
+    if (arg.startsWith('--entorno=')) {
+        let valor = arg.replace('--entorno=', '').trim()
 
-app.put("/products/:id", async (req, res) => {
-  try {
-    const product = await Product.findByPk(req.params.id);
-    if (product) {
-      await product.update(req.body);
-      io.emit("productsUpdated", await Product.findAll());
-      res.json(product);
-    } else {
-      res.status(404).send("Producto no encontrado");
+        entorno = constants.ENV[valor]
+
+        if (!entorno) {
+            throw new Error(`Entorno '${valor}' no es válido`)
+        }
     }
-  } catch (error) {
-    console.error("Error updating product:", error);
-    res.status(500).send("Error updating product");
-  }
-});
+})
 
-app.delete("/products/:id", async (req, res) => {
-  try {
-    const product = await Product.findByPk(req.params.id);
-    if (product) {
-      await product.destroy();
-      io.emit("productsUpdated", await Product.findAll());
-      res.sendStatus(204);
-    } else {
-      res.status(404).send("Producto no encontrado");
+const sequelize = new Sequelize(config[entorno])
+
+// const Product = require('./models/product')(sequelize, DataTypes)
+
+// sequelize.sync()
+
+// app.get('/products', async (_req, res) => {
+//     const products = await Product.findAll()
+
+//     return res.status(200).json({
+//         status: 'OK',
+//         message: 'List of products',
+//         data: products,
+//     })
+// })
+
+// app.post('/products', async (req, res) => {
+//     try {
+//         const { name, price, stock, imageUrl } = req.body
+//         const product = await Product.create({ name, price, stock, imageUrl })
+//         res.json(product)
+//     } catch (error) {
+//         console.error('Error creating product:', error)
+//         res.status(500).send('Error creating product')
+//     }
+// })
+
+// app.put('/products/:id', async (req, res) => {
+//     try {
+//         const product = await Product.findByPk(req.params.id)
+//         if (product) {
+//             await product.update(req.body)
+//             res.json(product)
+//         } else {
+//             res.status(404).send('Producto no encontrado')
+//         }
+//     } catch (error) {
+//         console.error('Error updating product:', error)
+//         res.status(500).send('Error updating product')
+//     }
+// })
+
+// app.delete('/products/:id', async (req, res) => {
+//     try {
+//         const product = await Product.findByPk(req.params.id)
+//         if (product) {
+//             await product.destroy()
+//             res.sendStatus(204)
+//         } else {
+//             res.status(404).send('Producto no encontrado')
+//         }
+//     } catch (error) {
+//         console.error('Error deleting product:', error)
+//         res.status(500).send('Error deleting product')
+//     }
+// })
+
+const HOST = constants.HOST[entorno]
+const PORT = constants.PORT[entorno]
+
+app.listen(PORT, HOST, (err) => {
+    if (err) {
+        console.error(err)
+        process.exit(1)
     }
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    res.status(500).send("Error deleting product");
-  }
-});
 
-const PORT = 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
-
-
+    console.log(`Servidor corriendo en http://${HOST}:${PORT}`)
+})
