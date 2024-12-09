@@ -1,5 +1,5 @@
 const { Sequelize, DataTypes } = require('sequelize')
-const constants = require('./app/utils/constants')
+const constants = require('./utils/constants')
 const config = require('./config/config.json')
 const express = require('express')
 const cors = require('cors')
