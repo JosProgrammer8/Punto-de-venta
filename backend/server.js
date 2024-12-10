@@ -2,7 +2,7 @@ const {
     ENV: { HOST, PORT },
 } = require('./config/env')
 const sequelize = require('./config/sequelize')
-const app = require('./config/app')
+const app = require('./app/router/index')
 
 app.listen(PORT, HOST, async (err) => {
     console.clear()

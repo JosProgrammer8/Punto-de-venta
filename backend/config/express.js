@@ -1,25 +1,20 @@
-const { errorHandler, notFound } = require('../app/middlewares/global')
 const compression = require('compression')
 const express = require('express')
 const helmet = require('helmet')
 const morgan = require('morgan')
 const cors = require('cors')
 
-const app = express()
+const appConfig = express()
 
-app.use(morgan('combined'))
-app.use(express.json())
-app.use(compression())
-app.use(helmet())
-app.use(
+appConfig.use(morgan('combined'))
+appConfig.use(express.json())
+appConfig.use(compression())
+appConfig.use(helmet())
+appConfig.use(
     cors({
         origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
     }),
 )
 
-app.use(errorHandler)
-
-app.use(notFound)
-
-module.exports = app
+module.exports = appConfig
