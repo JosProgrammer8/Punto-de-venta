@@ -1,6 +1,6 @@
 const { notFound, errorHandler } = require('../middlewares/global')
-const productsRoutes = require('./products')
 const expressApp = require('../../config/express')
+const productsRoutes = require('./products')
 
 expressApp.use('/api/v1/products', productsRoutes)
 

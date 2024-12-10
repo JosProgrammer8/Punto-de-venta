@@ -5,8 +5,6 @@ const sequelize = require('./config/sequelize')
 const app = require('./app/router/index')
 
 app.listen(PORT, HOST, async (err) => {
-    console.clear()
-
     if (err) {
         console.error(err)
         process.exit(1)

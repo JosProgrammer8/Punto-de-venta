@@ -19,6 +19,24 @@ async function index(_request, response) {
     })
 }
 
+async function show(request, response) {
+    const product = await Product.findByPk(request.params.id)
+
+    if (!product) {
+        return response.status(404).json({
+            status: 'ERR',
+            message: 'Product not found',
+            data: null,
+        })
+    }
+
+    return response.status(200).json({
+        status: 'OK',
+        message: 'Product found',
+        data: product,
+    })
+}
+
 async function create(request, response) {
     const { error, value } = createProductSchema.validate(request.body)
 
@@ -85,6 +103,7 @@ async function remove(request, response) {
 
 module.exports = {
     index,
+    show,
     create,
     update,
     remove,
