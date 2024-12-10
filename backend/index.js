@@ -1,7 +1,6 @@
-const config = require('./config/config.json')
-const constants = require('./utils/constants')
-const { Sequelize } = require('sequelize')
+const sequelize = require('./config/sequelize')
 const compression = require('compression')
+const { ENV } = require('./config/env')
 const express = require('express')
 const helmet = require('helmet')
 const morgan = require('morgan')
@@ -19,28 +18,6 @@ app.use(
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
     }),
 )
-
-let entorno = constants.ENV.prod
-
-const args = process.argv
-
-if (args.length <= 2) {
-    throw new Error(`Parametro '--entorno' requerido`)
-}
-
-args.forEach((argument) => {
-    const arg = argument.toLowerCase()
-
-    if (arg.startsWith('--entorno=')) {
-        let valor = arg.replace('--entorno=', '').trim()
-
-        entorno = constants.ENV[valor]
-
-        if (!entorno) {
-            throw new Error(`Entorno '${valor}' no es válido`)
-        }
-    }
-})
 
 app.use((err, _req, res, _next) => {
     console.error(err.stack)
@@ -60,15 +37,7 @@ app.use((_req, res, _next) => {
     })
 })
 
-const sequelize = new Sequelize({
-    ...config[entorno],
-    logging: false,
-})
-
-const HOST = constants.HOST[entorno]
-const PORT = constants.PORT[entorno]
-
-app.listen(PORT, HOST, async (err) => {
+app.listen(ENV.PORT, ENV.HOST, async (err) => {
     if (err) {
         console.error(err)
         process.exit(1)
@@ -76,10 +45,8 @@ app.listen(PORT, HOST, async (err) => {
 
     try {
         await sequelize.authenticate()
-
-        console.log('Conexión establecida con la base de datos')
-        console.log(`Servidor corriendo en http://${HOST}:${PORT}`)
+        console.log(`Servidor corriendo en http://${ENV.HOST}:${ENV.PORT}`)
     } catch (error) {
-        console.error('Error:', error)
+        console.error('Error al conectar con la base de datos:', error)
     }
 })
