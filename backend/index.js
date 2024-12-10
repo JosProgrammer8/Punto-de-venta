@@ -1,13 +1,24 @@
-const { Sequelize, DataTypes } = require('sequelize')
-const constants = require('./utils/constants')
 const config = require('./config/config.json')
+const constants = require('./utils/constants')
+const { Sequelize } = require('sequelize')
+const compression = require('compression')
 const express = require('express')
+const helmet = require('helmet')
+const morgan = require('morgan')
 const cors = require('cors')
 
 const app = express()
 
+app.use(morgan('combined'))
 app.use(express.json())
-app.use(cors())
+app.use(compression())
+app.use(helmet())
+app.use(
+    cors({
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    }),
+)
 
 let entorno = constants.ENV.prod
 
@@ -31,71 +42,44 @@ args.forEach((argument) => {
     }
 })
 
-const sequelize = new Sequelize(config[entorno])
+app.use((err, _req, res, _next) => {
+    console.error(err.stack)
 
-// const Product = require('./models/product')(sequelize, DataTypes)
+    return res.status(err.status ?? 500).json({
+        status: 'ERR',
+        message: err.message ?? 'Internal server error',
+        data: null,
+    })
+})
 
-// sequelize.sync()
+app.use((_req, res, _next) => {
+    return res.status(404).json({
+        status: 'ERR',
+        message: 'Ruta no encontrada',
+        data: null,
+    })
+})
 
-// app.get('/products', async (_req, res) => {
-//     const products = await Product.findAll()
-
-//     return res.status(200).json({
-//         status: 'OK',
-//         message: 'List of products',
-//         data: products,
-//     })
-// })
-
-// app.post('/products', async (req, res) => {
-//     try {
-//         const { name, price, stock, imageUrl } = req.body
-//         const product = await Product.create({ name, price, stock, imageUrl })
-//         res.json(product)
-//     } catch (error) {
-//         console.error('Error creating product:', error)
-//         res.status(500).send('Error creating product')
-//     }
-// })
-
-// app.put('/products/:id', async (req, res) => {
-//     try {
-//         const product = await Product.findByPk(req.params.id)
-//         if (product) {
-//             await product.update(req.body)
-//             res.json(product)
-//         } else {
-//             res.status(404).send('Producto no encontrado')
-//         }
-//     } catch (error) {
-//         console.error('Error updating product:', error)
-//         res.status(500).send('Error updating product')
-//     }
-// })
-
-// app.delete('/products/:id', async (req, res) => {
-//     try {
-//         const product = await Product.findByPk(req.params.id)
-//         if (product) {
-//             await product.destroy()
-//             res.sendStatus(204)
-//         } else {
-//             res.status(404).send('Producto no encontrado')
-//         }
-//     } catch (error) {
-//         console.error('Error deleting product:', error)
-//         res.status(500).send('Error deleting product')
-//     }
-// })
+const sequelize = new Sequelize({
+    ...config[entorno],
+    logging: false,
+})
 
 const HOST = constants.HOST[entorno]
 const PORT = constants.PORT[entorno]
 
-app.listen(PORT, HOST, (err) => {
+app.listen(PORT, HOST, async (err) => {
     if (err) {
         console.error(err)
         process.exit(1)
     }
 
-    console.log(`Servidor corriendo en http://${HOST}:${PORT}`)
+    try {
+        await sequelize.authenticate()
+
+        console.log('Conexión establecida con la base de datos')
+        console.log(`Servidor corriendo en http://${HOST}:${PORT}`)
+    } catch (error) {
+        console.error('Error:', error)
+    }
 })
